@@ -1,0 +1,778 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+
+/*
+DATA STRUCTURE AND ALGORITHMS FIRST PROJECT
+STUDENT NAME : Abdullah Sami Naser
+STUDENT ID : 1201952
+INSTRUCTOR : Dr.Radi Jarrar
+SECTION : 4 M,W 14:15-15:55
+NOTE :
+ - MAKE SURE THAT YOU PUT THE FILES (passengers.txt and busses.txt) IN THE FOLDER CONATINS THE .c FILE
+ - THE PROJECT IS DONE USING THE IDEA OF (LINKED LIST OF LINKED LIST) :
+
+ Bus1->St1->St2->..
+ |
+ v
+ Bus2->St1->St2->..
+ |
+ V
+ Bus3->St1->St2->..
+ |
+ V
+ .
+ .
+ Unmatched->St1->St2->..
+ 
+THANK YOU
+*/
+
+// define Constants that i will use them
+#define TIME 6
+#define MAXN 20
+#define SIZE 300
+#define SPLITS 10
+#define MAXLINE 500
+int NoOfStudents = 0; // Global variable to tell how many students are in the list of students
+int NoOfBusses = 0;   // Global variable to tell how many busses in the list of busses
+int flag1 = 0;        // flag to tell if the students list is intialized
+int flag2 = 0;        // flag to tell if the busses list is intialized
+
+// the student node information
+struct student
+{
+    int ID;
+    int Date;
+    char Time[TIME];
+    char From[MAXN];
+    char DST[MAXN];
+    int BusNo;
+    struct student *Next;
+};
+
+// the bus node information
+struct bus
+{
+    int BusNo;
+    int Date;
+    char Time[TIME];
+    char From[MAXN];
+    char DST[MAXN];
+    int Price;
+    int Capacity;
+    struct bus *NextB;
+    struct student *NextSt;
+};
+
+// Function Prototype for Students Linked List
+
+struct student *MakeStudent(struct student *L);                                                          // create the header of a linked list of students
+void DeleteSL(struct student *L);                                                                        // delete the list of students (delete all nodes)
+void LoadStFile(struct student *L);                                                                      // load students information from the file and add them to a list
+void InsertSt_End(int id, int date, char time[], char from[], char dst[], int busNo, struct student *l); // insert a student node at the last of the linked list
+void Print_Students_File(struct student *L);                                                             // Print each student in the list with his/her information
+int IsEmpty_St(struct student *L);                                                                       // check whether the list is empty or not
+int IsLast_St(struct student *P, struct student *L);                                                     // check whether a given node is the last one or not
+struct student *FindPrev_St(int id, struct student *S);                                                  // find the previous student's node of a specif node
+struct student *Find_St(int id, struct student *S);                                                      // find a specefic student node according to ID
+void Delete_Student(int id, struct student *S);                                                          // delete a specific student from the list
+
+// Function Prototype for general functions
+
+void menu();                                                      // display a menu of choices on the screen
+void Assign_Students_To_Busses(struct student *S, struct bus *B); // assign each student in the list to a bus fit him/her or to unmatched if no proper bus
+void Print_Busses_Students(struct bus *B);                        // this to print each bus with each student
+void Check_Unmatched(struct bus *B);                              // this function to check the unmatched students and assign them if there are new changes on busses
+// like a bus its capacity 1 and has 1 student , so become 0 , when delete this student the capacity will return 1 so I must
+// check the unmatched students to find a student fit this bus and assigned him/her
+
+// Function Prototype for busses Linked List
+
+struct bus *MakeBus(struct bus *B);                                                                               // function for making the header of a bus linked list
+void DeleteB(struct bus *B);                                                                                      // function to delete a linked list of busses
+void InsertB_End(int busNo, int date, char *time, char *from, char *dst, int price, int capacity, struct bus *B); // Insert a Bus at the end of the linked list
+int IsEmpty_B(struct bus *B);                                                                                     // check if the list of busses is empty
+int IsLast_B(struct bus *P, struct bus *B);                                                                       // check if a given node(bus) is the last one in the list or not
+void LoadBFile(struct bus *B);                                                                                    // load the busses.txt file and insert them into a linked list of busses
+void Print_Busses_File(struct bus *B);                                                                            // print all busses linked List
+struct bus *FindBus_No(int busNo, struct bus *B);                                                                 //  return a pointer to a specefic bus which has the number busNo
+void Print_Specific_Bus(int busNo, struct bus *B);                                                                // print a specific bus information
+struct bus *FindPrev_Bus(int busNo, struct bus *B);                                                               // find a previous bus for a specefic bus ( return a pointer to it)
+void Delete_Bus(int busNo, struct bus *B);                                                                        // delete a specefic bus and turn its students into the UNMATCHED (Waiting Bus)
+
+int main()
+{
+    struct student *S = MakeStudent(NULL); // create the Header of the students list
+    struct bus *B = MakeBus(NULL);         // create the header of the busses linked list
+    // this iteration will display the menu of choices to the user untill the user enter the exit choice
+    while (1)
+    {
+        menu();
+        int choice;
+        printf("<<  Enter a choice from(1-9)  >>   :   ");
+        scanf("%d", &choice);
+        switch (choice)
+        {
+        case 1:
+        {
+            // call load students file function to fill the students in a linked list
+            LoadStFile(S);
+            // print the list after fill it
+            Print_Students_File(S);
+        };
+        break;
+        case 2:
+        {
+            // call load busses file function to fill the busses in a linked list
+            LoadBFile(B);
+            // print information of the busses list
+            Print_Busses_File(B);
+        };
+        break;
+        case 3:
+        {
+            if(flag1 && flag2)
+            // call a function to assign each student either to a bus or to a waiting bus(Unmatched)
+             Assign_Students_To_Busses(S, B);
+            else 
+                printf(">> MAKE SURE YOU LOADED THE LISTS BEFORE ANY ASSIGNMENT PROCESS YOU WANT TO MAKE\n");
+        };
+        break;
+        case 4:
+        {
+            // ask the user to enter the number of the bus he/she wants to display its information
+            int x;
+            printf(">> Please Enter the bus Number : ");
+            scanf("%d", &x);
+            // call the function of printing a specefic bus info, and give it the value of Bus Number
+            Print_Specific_Bus(x, B);
+        };
+        break;
+        case 5:
+        {
+            // print the unmatched students(Waiting Bus)
+            // NOTE: I Assign the number 123 to the waiting bus when load all busses information from the file
+            Print_Specific_Bus(123, B);
+        };
+        break;
+        case 6:
+        {
+            // Ask the user to enter the proper information about the student he/she wants to add.
+            int id, date;
+            char time[MAXN], from[MAXN], dst[MAXN];
+            printf(">> ENTER STUDENT'S ID : ");
+            scanf("%d", &id);
+            printf(">> ENTER TRAVELLING DATE (e.g : 05042022) : ");
+            scanf("%d", &date);
+            printf(">> ENTER TRAVELLING TIME (e.g 14:00) : ");
+            scanf("%s", time);
+            printf(">> TRAVELLING FROM(DON'T PUT SPACES) : ");
+            scanf("%s", from);
+            printf(">> TRAVELLING TO (DON'T PUT SPACES) : ");
+            scanf("%s", dst);
+            // call the function insert to add the student in the students list , and give him/her 0 bus No
+            // NOTE : 0 for a student means that no assign process has done on the student
+            // so if the user now assign him the bus number will change either to a specefic bus no , or to the Unmatched(123)
+            InsertSt_End(id, date, time, from, dst, 0, S);
+            printf(">> DONE ADDED \n");
+        };
+        break;
+        case 7:
+        {
+            if (flag1 && flag2)
+            {
+                // Ask the user to enter the student id to delete it
+                printf(">> ENTER STUDENT ID : ");
+                int x, y;
+                scanf("%d", &x);
+                // check if the student has been assigned to a bus
+                printf(">> DOES THE STUDENT PICK A TICKET [Y/N] ? ");
+                char z;
+                scanf(" %c", &z);
+                // Y means the student assigned to a bus so ask the user to enter the bus number
+                if (z == 'Y')
+                {
+
+                    printf(">> ENTER THE BUS NO. : ");
+                    scanf("%d", &y);
+                    // find the bus according to the number entered by the user
+                    struct bus *p = FindBus_No(y, B);
+                    // check if the bus exist or not
+                    if (p != NULL)
+                    {
+                        // check if the specific student exists in the bus's students
+                        if (Find_St(x, p->NextSt) != NULL)
+                        {
+                            // delete the student
+                            Delete_Student(x, p->NextSt);
+                            // increment the capacity of the bus after delete the student
+                            p->Capacity++;
+                            printf(">> DONE DELETED\n");
+                            // check the unmatched student and assign the proper one
+                            // ( Look On the function prototype for more info. about this function)
+                            Check_Unmatched(B);
+                        }
+                    }
+                    else
+                        printf(">> INVALID INFORMATION , CHECK AND TRY AGAIN\n");
+                }
+                // if the student didn's pick a ticket(NO BUS) , then check the students list or unmatched to delete him/her
+                else
+                {
+                    if (Find_St(x, FindBus_No(123, B)->NextSt) != NULL)
+                    {
+
+                        Delete_Student(x, FindBus_No(123, B)->NextSt);
+                        printf(">> DONE DELETED\n");
+                    }
+
+                    else if (Find_St(x, S) != NULL)
+                    {
+                        Delete_Student(x, S);
+                        printf(">> DONE DELETED\n");
+                    }
+                    else
+                        printf(">> STUDENT DOES NOT EXIST\n");
+                };
+            }
+            else
+                printf(">> PLEASE ENTER CHOICE 1/2/6 AND TRY THIS CHOICE AGAIN\n");
+        };
+        break;
+        case 8:
+        {
+            if (flag2)
+            {
+                printf(">> ENTER THE BUS NO. : ");
+                int x;
+                scanf("%d", &x);
+                // check if the bus exists or not , if yes then delete it , else tell the user to check info.
+                if (FindBus_No(x, B) != NULL)
+                {
+                    Delete_Bus(x, B);
+                    printf(">> DONE DELETED \n");
+                }
+                else
+                    printf(">> WRONG BUS NO. , CHECK THE NUMBER AND TRY AGAIN\n");
+            }
+            else
+                printf(">> PLEASE ENTER CHOICE 2 AND TRY THIS CHOICE AGAIN\n");
+        };
+        break;
+        case 9:
+        {
+            printf(">> ************* GOOD LUCK ************* <<");
+            exit(0);
+        }
+
+        default:
+        {
+            printf(">> WRONG CHOICE NUMBER , PLEASE CHOOSE A NUMBER BETWEEN 1 TO 9\n");
+            continue;
+        };
+        }
+    }
+}
+
+void menu()
+{
+    // Choices
+    printf("-----------------<<WELCOME TO BZU STUDENTS TRANSPORTATION>>-----------------\n");
+    printf("\t>>1. LOAD STUDENTS FILE\n\t>>2. LOAD BUSSES FILE\n\t>>3. ASSIGN STUDENTS TO BUSSES AND PRINT INFO\n\t>>4. PRINT SPECEFIC BUS INFO");
+    printf("\n\t>>5. PRINT UNMATCHED STUDENTS\n\t>>6. ADD NEW STUDENT\n\t>>7. DELETE STUDENT\n\t>>8. DELETE BUS\n\t>>9. EXIT\n");
+}
+
+int IsEmpty_St(struct student *L)
+{
+    // if the next of the head is NULL then return 1 (Empty)
+    return L->Next == NULL;
+}
+
+int IsLast_St(struct student *P, struct student *L)
+{
+    // if the next of this node (P position) if NULL then its the last one so return 1
+    return P->Next == NULL;
+}
+
+struct student *MakeStudent(struct student *L)
+{
+    // this function to create a student list (Head)
+    // check if L isn's empty , then delete it
+    if (L != NULL)
+        DeleteSL(L);
+    // allocating student node with empty information , and the next is NULL until now , this is the head node
+    L = (struct student *)malloc(sizeof(struct student));
+    L->Next = NULL;
+    return L;
+}
+
+void DeleteSL(struct student *L)
+{
+    // this function to delete the list of students
+    // intialize the student struct pointer to the first node after head and define tmp to use it while traverse the nodes
+    struct student *p = L->Next, *tmp;
+    L->Next = NULL;
+    // this loop will continue until reach the last node
+    // in each iteration , point to the next of a node , then delete it
+    while (p != NULL)
+    {
+        tmp = p->Next;
+        free(p);
+        p = tmp;
+    }
+}
+
+void LoadStFile(struct student *L)
+{
+    // this function load students information from the file and fill in a linked list
+
+    FILE *stFile;
+    stFile = fopen("passengers.txt", "r"); // open the file for reading
+    // check if the opening process failed or not
+    if (stFile == NULL)
+        printf(">> FILE DOESN'T EXIST , BE SURE YOU PUT THE FILE IN THE CORRECT PATH\n");
+    // define a string to store each line of the file in it
+    char Line_Of_Students[MAXLINE];
+    // this loop will continue until reaching EOF
+    // in each iteration the fgets read one line and store it in string , then do operation on it to fill it
+    while (fgets(Line_Of_Students, MAXLINE, stFile) != NULL)
+    {
+        // define the proper variables for a student
+        int id, date;
+        char *time, *from, *dst;
+        // split each part of the line and fill it in the specefic variable
+        // NOTE : atoi function to convert the string into int
+        char *token = strtok(Line_Of_Students, "#");
+        id = atoi(token);
+        token = strtok(NULL, "#");
+        date = atoi(token);
+        token = strtok(NULL, "#");
+        time = token;
+        token = strtok(NULL, "#");
+        from = token;
+        token = strtok(NULL, "#");
+        dst = token;
+        // Insert the student in the list of students
+        InsertSt_End(id, date, time, from, dst, 0, L);
+        // increment the global variable of which tells the number of students
+        NoOfStudents++;
+        printf(">> DONE LOADED %d STUDENT INFO\n", NoOfStudents);
+    }
+    printf("\n");
+    fclose(stFile);
+    flag1 = 1;
+}
+
+void InsertSt_End(int id, int date, char *time, char *from, char *dst, int busNo, struct student *l)
+{
+    // this function inser the student at the end of the list
+    struct student *p = l, *tmp;
+    // allocating student node and fill its info. with the given info.
+    tmp = (struct student *)malloc(sizeof(struct student));
+    tmp->ID = id;
+    tmp->Date = date;
+    strcpy(tmp->Time, time);
+    strcpy(tmp->From, from);
+    strcpy(tmp->DST, dst);
+    tmp->BusNo = busNo;
+    tmp->Next = NULL;
+    // if the list is empty then insert it after the head
+    if (IsEmpty_St(l))
+        l->Next = tmp;
+    // start iteration to reach the end of the list , then insert it after the last node
+    else
+    {
+        p = l->Next;
+        while (!IsLast_St(p, l))
+            p = p->Next;
+
+        p->Next = tmp;
+    }
+}
+
+void Print_Students_File(struct student *L)
+{
+    // this function will print the student information in a given list
+    struct student *p = L;
+    // check if the list is empty or not
+    if (IsEmpty_St(L))
+        printf(">> NO STUDENTS\n");
+    else
+    {
+        printf(" STUDENT ID          DATE            TIME            FROM            TO\n");
+        do
+        {
+
+            p = p->Next;
+            printf("\n  %d          %d          %s          %s          %s", p->ID, p->Date, p->Time, p->From, p->DST);
+
+        } while (!IsLast_St(p, L));
+        printf("\n");
+    }
+}
+
+struct bus *MakeBus(struct bus *B)
+{
+    // this function make the header of a busses list
+    // the process of create the head is the same as the creation of student's  header
+    if (B != NULL)
+        DeleteB(B);
+    B = (struct bus *)malloc(sizeof(struct bus));
+    if (B == NULL)
+        printf("<<Out Of Memory>>\n");
+    B->NextB = NULL;
+    B->NextSt = NULL;
+    return B;
+}
+
+void DeleteB(struct bus *B)
+{
+    // this function to delete a given bus list
+    // create a pointer to the first bus , and temp one
+    struct bus *P = B->NextB, *tmp;
+    // make the head points to nothing(NULL)
+    B->NextB = NULL;
+    B->NextSt = NULL;
+    // this iteration will continue until reach the end of the list
+    while (P != NULL)
+    {
+        tmp = P->NextB;      // points to the next node of P
+        DeleteSL(P->NextSt); // delete student list in Bus P
+        free(P);             // then free P
+        P = tmp;             // now move P to the next iteration
+    }
+}
+
+int IsEmpty_B(struct bus *B)
+{
+    // check if the bus list is empty
+    return B->NextB == NULL;
+}
+
+int IsLast_B(struct bus *P, struct bus *B)
+{
+    // check if a given bus is the last in that list
+    return P->NextB == NULL;
+}
+
+void InsertB_End(int busNo, int date, char *time, char *from, char *dst, int price, int capacity, struct bus *B)
+{
+    // this function to insert a given bus information into a node and insert it last in a given list B
+    struct bus *P = B, *tmp;
+    tmp = (struct bus *)malloc(sizeof(struct bus));
+    tmp->BusNo = busNo;
+    tmp->Date = date;
+    strcpy(tmp->Time, time);
+    strcpy(tmp->From, from);
+    strcpy(tmp->DST, dst);
+    tmp->Price = price;
+    tmp->Capacity = capacity;
+    tmp->NextB = NULL;
+    tmp->NextSt = MakeStudent(NULL); // create the header of a student list in that bus
+    if (IsEmpty_B(B))
+        B->NextB = tmp;
+    else
+    {
+        P = B->NextB;
+        while (!IsLast_B(P, B))
+            P = P->NextB;
+
+        P->NextB = tmp;
+    }
+}
+
+void LoadBFile(struct bus *B)
+{
+    // this function to load the busses file and fill it in a list of busses
+
+    FILE *bFile;
+    bFile = fopen("busses.txt", "r"); // open the file for reading
+    if (bFile == NULL)
+        printf(">> FILE DOESN'T EXIST , BE SURE YOU PUT THE FILE IN THE CORRECT PATH\n");
+    char Line_Of_Busses[MAXLINE];
+    while (fgets(Line_Of_Busses, MAXLINE, bFile) != NULL)
+    {
+        int no, date, price, capacity;
+        char *time, *from, *dst, *token;
+        token = strtok(Line_Of_Busses, "#");
+        no = atoi(token);
+        token = strtok(NULL, "#");
+        date = atoi(token);
+        token = strtok(NULL, "#");
+        time = token;
+        token = strtok(NULL, "#");
+        from = token;
+        token = strtok(NULL, "#");
+        dst = token;
+        token = strtok(NULL, "#");
+        price = atoi(token);
+        token = strtok(NULL, "#");
+        capacity = atoi(token);
+        NoOfBusses++;
+        printf(">> DONE LOADED %d BUS INFO\n", NoOfBusses);
+        InsertB_End(no, date, time, from, dst, price, capacity, B); // insert the bus at the end of the busses list B
+    }
+    InsertB_End(123, 00, "N/A", "N/A", "N/A", 00, 00, B); // after the insertion of busses finished , insert unmatched bus
+    // or (waiting bus for unmatched student) at the last of that bus , give it the number 123 and NotAvailable for the rest info.
+    // this bus will contain a list of the unmatched students
+    fclose(bFile);
+    flag2 = 1;
+}
+
+void Print_Busses_File(struct bus *B)
+{
+    // this function to print the busses (its info.)
+    struct bus *p = B;
+    if (IsEmpty_B(B))
+        printf("<<This is Empty Busses List>>\n");
+    else
+    {
+
+        do
+        {
+            p = p->NextB;
+            if (p->BusNo != 123)
+            {
+                printf("\nBus No %d Information : \n", p->BusNo);
+                printf(">> Date : %d\n>> Time : %s\n>> From : %s\n>> To : %s\n>> Price : %d\n>> Capacity : %d\n", p->Date, p->Time, p->From, p->DST, p->Price, p->Capacity);
+            }
+            else
+            {
+                printf("\nWaiting Bus Info ( For Unmatched Students) : \n");
+                printf(">> Date : %d\n>> Time : %s\n>> From : %s\n>> To : %s\n>> Price : %d\n>> Capacity : %d\n", p->Date, p->Time, p->From, p->DST, p->Price, p->Capacity);
+            }
+
+        } while (!IsLast_B(p, B));
+        printf("\n");
+    }
+}
+
+void Assign_Students_To_Busses(struct student *S, struct bus *B)
+{
+    // this function to assign each student in the list into a proper bus , or to unmatched(waiting bus)
+    struct student *p1 = S->Next;
+    struct bus *p2 = B->NextB;
+    // check if the students list is empty , then no assign process
+    if (IsEmpty_St(S))
+        printf(">> NO STUDENTS TO ASSIGN THEM , PLEASE ENTER CHOICE 1/6 TO ADD A NEW STUDENT/S\n");
+
+    else
+    {
+        // this iteration will continue untill reach the last bus in the busses list B
+        while (p2 != NULL)
+        {
+
+            char *token = strtok(p2->Time, ":"); // split the bus time (take just the hour)
+            p1 = S->Next;                        // intialize the student pointer to the first student in the list
+            // this because in the inside loop , p will reach the end student , and when the outer loop continue the seconde time
+            // p1 (student) will be null , so I must intialize p1 again to points to the first student again
+
+            // this iteration will move until the last student
+            while (p1 != NULL)
+            {
+
+                int diff;                          // variable shows the difference between (bus time - student time(hours))
+                char *tkz = strtok(p1->Time, ":"); // split the student time (takes just the hour)
+                diff = atoi(token) - atoi(tkz);    // find the difference ... atoi to convert time to int
+                // this condition checks :
+                // 1- first if the student's bus number is 0 (means no assignment process done on this student)
+                // 2- the date of travelling is the same
+                // 3- the difference between the bus time and student time is at least 0 and at most 1 hour
+                // 4- check if the place is the same (from just)
+                if ((p1->BusNo == 0) && (p1->Date == p2->Date) && (diff >= 0 && diff <= 1) && (strcmp(p1->From, p2->From) == 0))
+                {
+                    // now if the previous conditions is true , so the assignment can be done
+                    // but I must check the capacity of the bus
+                    if (p2->Capacity > 0)
+                    {
+                        // insert the student at the last of the bus student's list
+                        InsertSt_End(p1->ID, p1->Date, p1->Time, p1->From, p1->DST, p2->BusNo, p2->NextSt);
+                        printf(">> DONE STUDENT [ %d ] ASSIGNED TO BUS NO. %d\n", p1->ID, p2->BusNo);
+                        p2->Capacity--;        // decrement the capacity
+                        p1->BusNo = p2->BusNo; // change the student busNo in the students list into this bus no.
+                        // this in order to not check the student again for another bus (look the first condition in the first if)
+                        // I put the first condition if p1->BusNo ==0 , to make short and make the compiler not to check other
+                        // conditions if this is false , since this is AND statment
+                    }
+                }
+
+                p1 = p1->Next; // move to the next student
+            }
+            p2 = p2->NextB; // move to the next bus
+        }
+        struct student *t = S->Next;
+        struct bus *unmatched = FindBus_No(123, B); // points to the unmatched bus
+        // this loop will move for all students
+        while (t != NULL)
+        {
+            // if the student bus no ==0 , (if no assignment done on him/her) so insert the student to the unmatched list
+            if (t->BusNo == 0)
+            {
+                InsertSt_End(t->ID, t->Date, t->Time, t->From, t->DST, 123, unmatched->NextSt);
+                t->BusNo = 123;
+                printf(">> UNAMTCHED STUDENT [ %d ]\n", t->ID);
+            };
+            t = t->Next;
+        }
+        // now after assignment process done for all students , delete the main student list
+        DeleteSL(S);
+        // print each bus with its students
+        Print_Busses_Students(B);
+    }
+}
+
+struct bus *FindBus_No(int busNo, struct bus *B)
+{
+    // find a specefic bus according its number  , returns null if didn't found
+    struct bus *p = B->NextB;
+    while (p != NULL && p->BusNo != busNo)
+        p = p->NextB;
+    return p;
+};
+
+void Print_Busses_Students(struct bus *B)
+{
+    // the to print each bus's students
+    struct bus *p = B;
+    do
+    {
+        p = p->NextB;
+        if (p->BusNo != 123)
+        {
+
+            printf("\nBUS NO %d STUDENTS INFORMATION : \n", p->BusNo);
+            Print_Students_File(p->NextSt);
+        }
+        else
+        {
+            printf(" UNMATCHED STUDENTS INFORMATION : \n");
+            Print_Students_File(p->NextSt);
+        }
+
+    } while (!IsLast_B(p, B));
+}
+
+void Print_Specific_Bus(int busNo, struct bus *B)
+{
+    // this function to print a specefic bus information with its students
+    struct bus *tmp = FindBus_No(busNo, B);
+    if (tmp == NULL)
+        printf(">> NO BUSSES HAS THIS NUMBER , PLEASE CHECK THE NUMBER YOU ENTERED AND TRY AGAIN\n");
+    else
+    {
+        if (tmp->BusNo != 123) // check if the unmatched bus then prints just the students
+        {
+            printf(">> BUS NO. %d INFORMATION : \n", tmp->BusNo);
+            printf(" DATE : %d\n TIME : %s\n FROM : %s\n TO : %s\n PRICE : %d\n CAPACITY : %d\n STUDENTS : \n", tmp->Date, tmp->Time, tmp->From, tmp->DST, tmp->Price, tmp->Capacity);
+            Print_Students_File(tmp->NextSt);
+        }
+        else
+        {
+            printf(">> UNMATCHED STUDENTS INFORMATION : \n");
+            Print_Students_File(tmp->NextSt);
+        }
+    }
+}
+
+struct student *FindPrev_St(int id, struct student *S)
+{
+    // returns a pointer to the previous of a specefic student
+    struct student *p = S;
+    while (p->Next != NULL && p->Next->ID != id)
+        p = p->Next;
+    return p;
+};
+
+struct student *Find_St(int id, struct student *S)
+{
+    // return a pointer to a student according to id , null if DNE(does not exist)
+    struct student *p = S->Next;
+    while (p != NULL && p->ID != id)
+        p = p->Next;
+    return p;
+};
+
+void Delete_Student(int id, struct student *S)
+{
+    // this to delete a specefic student in a list
+    struct student *p, *tmp;
+    p = FindPrev_St(id, S);
+    if (!IsLast_St(p, S))
+    {
+        tmp = p->Next;
+        p->Next = tmp->Next;
+        free(tmp);
+    }
+}
+
+struct bus *FindPrev_Bus(int busNo, struct bus *B)
+{
+    // returns a pointer to the previous bus of a specefic one
+    struct bus *p = B;
+    while (p->NextB != NULL && p->NextB->BusNo != busNo)
+        p = p->NextB;
+    return p;
+};
+
+void Delete_Bus(int busNo, struct bus *B)
+{
+    // this to delete a specefic bus
+    struct bus *p, *tmp, *tmp2;
+    struct student *tmp3;
+    tmp2 = FindBus_No(123, B);             // find the unmatched bus
+    tmp3 = tmp2->NextSt->Next;             // header of students list in the unmatched bus
+    while (!IsLast_St(tmp3, tmp2->NextSt)) // find the last student node in the students list at the unmatched bus
+        tmp3 = tmp3->Next;
+    p = FindPrev_Bus(busNo, B); // find the previous bus
+    if (!IsLast_B(p, B))
+    {
+        tmp = p->NextB;
+        tmp3->Next = tmp->NextSt->Next; // assign the students list in the bus which will be deleted into the unmatched bus
+        tmp->NextSt = NULL;
+        p->NextB = tmp->NextB;
+        free(tmp);
+    }
+}
+
+void Check_Unmatched(struct bus *B)
+{
+    // this function will check the students in the unmatched bus
+    // and assign them into a proper bus
+    struct student *headS = FindBus_No(123, B)->NextSt;
+    struct student *p1;
+    struct bus *p2 = B->NextB;
+    if (IsEmpty_St(headS)) // if no unmatched students then return
+        return;
+
+    // this iteration will move for all students in the unmatched bus and make the same as assign function but with
+    // some changes on conditions
+    while (p2 != NULL)
+    {
+
+        char *token = strtok(p2->Time, ":");
+        p1 = headS->Next;
+        while (p1 != NULL)
+        {
+
+            int diff;
+            char *tkz = strtok(p1->Time, ":");
+            diff = atoi(token) - atoi(tkz);
+
+            if ((p1->Date == p2->Date) && (diff >= 0 && diff <= 1) && (strcmp(p1->From, p2->From) == 0))
+            {
+                if (p2->Capacity > 0)
+                {
+                    InsertSt_End(p1->ID, p1->Date, p1->Time, p1->From, p1->DST, p2->BusNo, p2->NextSt);
+                    printf(">> DONE STUDENT [ %d ] ASSIGNED TO BUS NO. %d\n", p1->ID, p2->BusNo);
+                    p2->Capacity--;
+                    p1->BusNo = p2->BusNo;
+                    Delete_Student(p1->ID, headS); // delete the student from the unmatched after insert it to another bus
+                }
+            }
+
+            p1 = p1->Next;
+        }
+        p2 = p2->NextB;
+    }
+}
